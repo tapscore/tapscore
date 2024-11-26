@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semi-Finalists</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .competitor-table {
+            margin-top: 30px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+            border-collapse: collapse;
+        }
+
+        .competitor-table th, .competitor-table td {
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .competitor-table th {
+            background-color: #222;
+        }
+
+        .competitor-table td {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Semi-Finalists</h1>
+
+    <!-- Table to display semi-finalists -->
+    <table class="competitor-table" id="semiFinalTable">
+        <thead>
+            <tr>
+                <th>Lot Number</th>
+                <th>Yes Votes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Semi-finalists will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+
+        async function fetchSemiFinalists() {
+            try {
+                const response = await fetch(`http://localhost:5000/api/semi-finalists/${categoryId}`);
+                const semiFinalists = await response.json();
+
+                // Get the table body to insert semi-finalists
+                const semiFinalTableBody = document.querySelector('#semiFinalTable tbody');
+
+                // Loop through the semi-finalists and create table rows
+                semiFinalists.forEach(finalist => {
+                    const row = document.createElement('tr');
+
+                    const lotNumberCell = document.createElement('td');
+                    lotNumberCell.textContent = finalist.lot_number;
+                    row.appendChild(lotNumberCell);
+
+                    const yesVotesCell = document.createElement('td');
+                    yesVotesCell.textContent = finalist.yes_votes;
+                    row.appendChild(yesVotesCell);
+
+                    // Append the row to the table body
+                    semiFinalTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching semi-finalists:', error);
+            }
+        }
+
+        // Fetch semi-finalists when the page loads
+        window.onload = fetchSemiFinalists;
+    </script>
+</body>
+</html>

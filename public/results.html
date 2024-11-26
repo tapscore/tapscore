@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Competition Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .category-section {
+            margin-bottom: 50px;
+        }
+
+        table {
+            width: 80%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            background-color: #333;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #555;
+            font-size: 1.2rem;
+        }
+
+        th {
+            background-color: #444;
+        }
+
+        td {
+            background-color: #222;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-button" onclick="window.location.href='admin.html'">Back to Admin Panel</div>
+    <h1>Competition Results</h1>
+    <div id="resultsContainer"></div>
+
+    <script>
+        async function fetchResults() {
+            try {
+                const response = await fetch('http://localhost:5000/api/final-rankings');
+                const data = await response.json();
+
+                const resultsContainer = document.getElementById('resultsContainer');
+
+                data.forEach(category => {
+                    // Create a section for each category
+                    const categorySection = document.createElement('div');
+                    categorySection.className = 'category-section';
+
+                    // Category title
+                    const title = document.createElement('h2');
+                    title.textContent = `Category: ${category.category_name}`;
+                    categorySection.appendChild(title);
+
+                    // Create table
+                    const table = document.createElement('table');
+
+                    // Table header
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    ['Rank', 'Lot Number', 'Competitor Name'].forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        headerRow.appendChild(th);
+                    });
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    // Table body
+                    const tbody = document.createElement('tbody');
+                    category.rankings.forEach(ranking => {
+                        const row = document.createElement('tr');
+
+                        const rankCell = document.createElement('td');
+                        rankCell.textContent = ranking.ranking;
+                        row.appendChild(rankCell);
+
+                        const lotNumberCell = document.createElement('td');
+                        lotNumberCell.textContent = ranking.lot_number;
+                        row.appendChild(lotNumberCell);
+
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = ranking.name;
+                        row.appendChild(nameCell);
+
+                        tbody.appendChild(row);
+                    });
+                    table.appendChild(tbody);
+
+                    // Append table to section
+                    categorySection.appendChild(table);
+                    resultsContainer.appendChild(categorySection);
+                });
+            } catch (error) {
+                console.error('Error loading results:', error);
+                const resultsContainer = document.getElementById('resultsContainer');
+                resultsContainer.textContent = 'Error loading results. Please try again later.';
+            }
+        }
+
+        // Fetch results on page load
+        window.onload = fetchResults;
+    </script>
+</body>
+</html>

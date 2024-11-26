@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Round</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .button-container {
+            margin-top: 50px;
+        }
+
+        .round-button {
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            margin: 20px;
+            background-color: #E6A30E;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: none; /* Hide by default */
+        }
+
+        .round-button.enabled {
+            display: inline-block; /* Show when enabled */
+        }
+
+        .round-button:hover {
+            background-color: #DC2663;
+            color: white;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+
+        .message.error {
+            color: #dc3545; /* Red */
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <div class="back-button" id="backButton">Back to Category Selection</div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+        Judge: <span id="judgeName"></span> |
+        Group: <span id="categoryGroup"></span> |
+        Category: <span id="categoryName"></span>
+    </div>
+
+    <h1>Select Round</h1>
+
+    <!-- Button Container -->
+    <div class="button-container">
+        <button id="selectionButton" class="round-button">Selection Round</button>
+        <button id="semiFinalButton" class="round-button">Semi-Final Round</button>
+        <button id="finalButton" class="round-button">Final Round</button>
+    </div>
+
+    <!-- Error Message -->
+    <div id="message" class="message error"></div>
+
+    <script>
+        // Retrieve URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+        const judgeName = urlParams.get('judge');
+        const categoryGroup = urlParams.get('group');
+        const categoryName = urlParams.get('category');
+
+        // Update Info Box
+        document.getElementById('judgeName').textContent = judgeName;
+        document.getElementById('categoryGroup').textContent = categoryGroup;
+        document.getElementById('categoryName').textContent = categoryName;
+
+        // Back Button Functionality
+        document.getElementById('backButton').addEventListener('click', () => {
+            // Redirect to category.html with judge and group information
+            window.location.href = `category.html?group=${encodeURIComponent(categoryGroup)}&judge=${encodeURIComponent(judgeName)}`;
+        });
+
+        // Fetch Active Rounds for the Category
+        async function fetchActiveRounds() {
+            try {
+                const response = await fetch(`http://localhost:5000/api/category-rounds/${categoryId}`);
+                const roundStatus = await response.json();
+
+                // Function to toggle the visibility of buttons
+                function toggleButton(buttonId, isEnabled, scoringPage) {
+                    const button = document.getElementById(buttonId);
+                    if (isEnabled) {
+                        button.classList.add('enabled');
+                        button.addEventListener('click', () => {
+                            window.location.href = `${scoringPage}?category_id=${categoryId}&judge=${encodeURIComponent(judgeName)}&group=${encodeURIComponent(categoryGroup)}&category=${encodeURIComponent(categoryName)}`;
+                        });
+                    } else {
+                        button.classList.remove('enabled');
+                    }
+                }
+
+                // Enable or disable buttons based on round status
+                toggleButton('selectionButton', roundStatus.selection, 'selection_scoring.html');
+                toggleButton('semiFinalButton', roundStatus.semi_final, 'semi_final_scoring.html');
+                toggleButton('finalButton', roundStatus.final, 'final_scoring.html'); // Assuming final_scoring.html exists
+
+            } catch (error) {
+                console.error('Error fetching active rounds:', error);
+                document.getElementById('message').textContent = 'Error fetching active rounds. Please try again later.';
+            }
+        }
+
+        // Fetch active rounds when the page loads
+        window.onload = fetchActiveRounds;
+    </script>
+</body>
+</html>

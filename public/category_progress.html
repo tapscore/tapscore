@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Progress</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .category-progress {
+            margin-bottom: 50px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 80%;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .progress-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: black;
+            z-index: 2;
+            position: relative;
+        }
+
+        .completed {
+            background-color: green;
+            color: white;
+        }
+
+        .current {
+            background-color: orange;
+            color: black;
+        }
+
+        .future {
+            background-color: grey;
+            color: white;
+        }
+
+        .judge-counter {
+            margin-top: 10px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .progress-connector {
+            position: absolute;
+            height: 5px;
+            background-color: grey;
+            top: 50%;
+            transform: translateY(-350%);
+            z-index: 1;
+        }
+
+        .progress-connector.first {
+            left: calc(80px / 2);
+            right: calc(50% + 40px);
+        }
+
+        .progress-connector.second {
+            left: calc(50% + 40px);
+            right: calc(80px / 2);
+        }
+
+        .circle-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .advance-button {
+            margin-top: 10px;
+            padding: 5px 15px;
+            background-color: #E6A30E;
+            border: none;
+            color: black;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .advance-button:hover {
+            background-color: #DC2663;
+            color: white;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .back-button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <a href="admin.html" class="back-button">Back to Admin Panel</a>
+
+    <h1>Category Progress</h1>
+
+    <div id="progressContainer"></div>
+
+    <script>
+        async function fetchCategoryProgress() {
+            try {
+                const response = await fetch('http://localhost:5000/api/category-progress');
+                const { data } = await response.json();
+
+                const progressContainer = document.getElementById('progressContainer');
+                progressContainer.innerHTML = '';
+
+                data.forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'category-progress';
+
+                    const title = document.createElement('h2');
+                    title.textContent = category.category_name;
+                    categoryDiv.appendChild(title);
+
+                    const progressBar = document.createElement('div');
+                    progressBar.className = 'progress-container';
+
+                    // Add connectors
+                    const firstConnector = document.createElement('div');
+                    firstConnector.className = 'progress-connector first';
+
+                    const secondConnector = document.createElement('div');
+                    secondConnector.className = 'progress-connector second';
+
+                    progressBar.appendChild(firstConnector);
+                    progressBar.appendChild(secondConnector);
+
+                    const createCircle = (status, judges, roundType) => {
+                        const circleContainer = document.createElement('div');
+                        circleContainer.className = 'circle-container';
+
+                        const circle = document.createElement('div');
+                        circle.className = `progress-circle ${status}`;
+                        circle.textContent = status === 'completed' ? '✔' : status === 'current' ? '→' : '';
+
+                        const judgeCounter = document.createElement('div');
+                        judgeCounter.className = 'judge-counter';
+                        judgeCounter.textContent = judges;
+
+                     
+
+                        circleContainer.appendChild(circle);
+                        circleContainer.appendChild(judgeCounter);
+
+                        return circleContainer;
+                    };
+
+                    progressBar.appendChild(
+                        createCircle(
+                            category.selection.status,
+                            `${category.selection.judges}/${category.judge_count}`,
+                            'selection'
+                        )
+                    );
+                    progressBar.appendChild(
+                        createCircle(
+                            category.semi_final.status,
+                            `${category.semi_final.judges}/${category.judge_count}`,
+                            'semi_final'
+                        )
+                    );
+                    progressBar.appendChild(
+                        createCircle(
+                            category.final.status,
+                            `${category.final.judges}/${category.judge_count}`,
+                            'final'
+                        )
+                    );
+
+                    categoryDiv.appendChild(progressBar);
+                    progressContainer.appendChild(categoryDiv);
+                });
+            } catch (error) {
+                console.error('Error fetching category progress:', error);
+                document.getElementById('progressContainer').textContent = 'Error loading progress data.';
+            }
+        }
+
+
+        window.onload = fetchCategoryProgress;
+    </script>
+</body>
+</html>

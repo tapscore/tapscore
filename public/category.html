@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Category</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .category-list {
+            margin-top: 30px;
+            list-style: none;
+            padding: 0;
+        }
+
+        .category-item {
+            margin: 20px auto;
+            padding: 20px 40px;
+            background: linear-gradient(90deg, #DC2663, #E6A30E); /* Gradient color */
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: white;
+            text-transform: uppercase;
+            font-weight: bold;
+            width: 60%;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .category-item:hover {
+            background-color: #444;
+            transform: scale(1.05);
+        }
+
+        /* Center the buttons */
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back button that leads back to category-group.html -->
+    <div class="back-button" id="backButton">Back</div>
+
+    <!-- Info box that shows the judge's name and category group -->
+    <div class="info-box" id="infoBox">
+        Judge: <span id="judgeName"></span> |
+        Group: <span id="categoryGroup"></span>
+    </div>
+
+    <h1>Select a Category</h1>
+
+    <ul class="category-list" id="categoryList"></ul>
+
+    <div class="error" id="errorMessage" style="display:none;">Error fetching categories.</div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryGroup = urlParams.get('group');
+        const judgeName = urlParams.get('judge');
+
+        // Update the info box with judge and group names
+        document.getElementById('judgeName').textContent = judgeName;
+        document.getElementById('categoryGroup').textContent = categoryGroup;
+
+        // Back button functionality to go back to category-group.html
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = `category-group.html?judge=${encodeURIComponent(judgeName)}`;
+        });
+
+        async function fetchCategories() {
+            try {
+                const response = await fetch('http://localhost:5000/api/categories');
+                if (!response.ok) {
+                    throw new Error('Network response was not OK');
+                }
+                const categories = await response.json();
+
+                const categoryList = document.getElementById('categoryList');
+                const errorMessage = document.getElementById('errorMessage');
+
+                // Filter categories that match the category group exactly
+                const filteredCategories = categories.filter(category => 
+                    category.name.toLowerCase().startsWith(categoryGroup.toLowerCase())
+                );
+
+                if (filteredCategories.length === 0) {
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = `No categories found for the group "${categoryGroup}"`;
+                    return;
+                }
+
+                filteredCategories.forEach(category => {
+                    const li = document.createElement('li');
+                    li.className = 'category-item';
+                    li.textContent = category.name;
+
+                    // Redirect to select_round.html with the category ID and category name
+                    li.addEventListener('click', () => {
+                        window.location.href = `select_round.html?category_id=${category.id}&category=${encodeURIComponent(category.name)}&group=${encodeURIComponent(categoryGroup)}&judge=${encodeURIComponent(judgeName)}`;
+                    });
+
+                    categoryList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').textContent = 'Error fetching categories.';
+            }
+        }
+
+        // Fetch categories when the page loads
+        window.onload = fetchCategories;
+    </script>
+</body>
+</html>

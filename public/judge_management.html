@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Judges</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .judge-list {
+            margin-top: 30px;
+            text-align: center;
+            background-color: #222;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .judge-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        .judge-info {
+            flex-grow: 1;
+            text-align: left;
+            font-size: 1.2rem;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px; /* Space between Update and Delete buttons */
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .update-button {
+            background-color: #E6A30E;
+        }
+
+        .update-button:hover {
+            background-color: #DC2663;
+        }
+
+        .delete-button {
+            background-color: #DC2663;
+        }
+
+        .delete-button:hover {
+            background-color: #E6A30E;
+        }
+
+        .add-judge-container {
+            margin-top: 40px;
+            background-color: #222;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .add-judge-container input {
+            padding: 10px;
+            font-size: 1.2rem;
+            margin: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .add-button {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .add-button:hover {
+            background-color: #DC2663;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-button" onclick="window.location.href='admin.html'">Back to Admin Panel</div>
+
+    <h1>Manage Judges</h1>
+
+    <!-- List of existing judges -->
+    <div class="judge-list" id="judgeList">
+        <!-- Judges will be populated here dynamically -->
+    </div>
+
+    <!-- Add new judge form -->
+    <div class="add-judge-container">
+        <h2>Add New Judge</h2>
+        <input type="text" id="newJudgeName" placeholder="Enter judge name">
+        <input type="password" id="newJudgePin" placeholder="Enter 4-digit PIN">
+        <button class="add-button" onclick="addJudge()">Add Judge</button>
+    </div>
+
+    <script>
+        // Function to dynamically populate the judge list
+        async function fetchJudges() {
+            try {
+                const response = await fetch('http://localhost:5000/api/judges');
+                const judges = await response.json();
+
+                const judgeList = document.getElementById('judgeList');
+                judgeList.innerHTML = ''; // Clear any existing list items
+
+                judges.forEach(judge => {
+                    const judgeEntry = document.createElement('div');
+                    judgeEntry.classList.add('judge-entry');
+
+                    const judgeInfo = document.createElement('div');
+                    judgeInfo.classList.add('judge-info');
+                    judgeInfo.textContent = `Name: ${judge.name}, PIN: ${judge.pin}`;
+
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.classList.add('button-container');
+
+                    const updateButton = document.createElement('button');
+                    updateButton.textContent = 'Update';
+                    updateButton.classList.add('update-button');
+                    updateButton.onclick = () => updateJudge(judge.id);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.classList.add('delete-button');
+                    deleteButton.onclick = () => deleteJudge(judge.id);
+
+                    buttonContainer.appendChild(updateButton);
+                    buttonContainer.appendChild(deleteButton);
+
+                    judgeEntry.appendChild(judgeInfo);
+                    judgeEntry.appendChild(buttonContainer);
+                    judgeList.appendChild(judgeEntry);
+                });
+            } catch (error) {
+                console.error('Error fetching judges:', error);
+            }
+        }
+
+        // Call the function to fetch judges when the page loads
+        window.onload = fetchJudges;
+
+        // Function to add a new judge
+        async function addJudge() {
+            const name = document.getElementById('newJudgeName').value;
+            const pin = document.getElementById('newJudgePin').value;
+
+            if (!name || !pin) {
+                alert('Please enter both name and 4-digit PIN.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/api/judges', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, pin })
+                });
+
+                if (response.ok) {
+                    alert('Judge added successfully');
+                    fetchJudges(); // Refresh the judge list
+                } else {
+                    alert('Error adding judge.');
+                }
+            } catch (error) {
+                console.error('Error adding judge:', error);
+                alert('Error adding judge.');
+            }
+        }
+
+		// Function to update a judge
+		async function updateJudge(judgeId) {
+			// Prompt the admin for new name and PIN
+			const newName = prompt('Enter the new name for the judge:');
+			const newPin = prompt('Enter the new 4-digit PIN for the judge:');
+
+			if (!newName || !newPin) {
+				alert('Both name and PIN are required.');
+				return;
+			}
+
+			if (newPin.length !== 4 || isNaN(newPin)) {
+				alert('PIN must be a 4-digit number.');
+				return;
+			}
+
+			try {
+				const response = await fetch(`http://localhost:5000/api/judges/${judgeId}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ name: newName, pin: newPin })
+				});
+
+				if (response.ok) {
+					alert('Judge updated successfully');
+					fetchJudges(); // Refresh the judge list
+				} else {
+					alert('Error updating judge.');
+				}
+			} catch (error) {
+				console.error('Error updating judge:', error);
+				alert('Error updating judge.');
+			}
+		}
+
+
+        // Function to delete a judge
+        async function deleteJudge(judgeId) {
+            if (!confirm('Are you sure you want to delete this judge?')) return;
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/judges/${judgeId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert('Judge deleted successfully');
+                    fetchJudges(); // Refresh the judge list
+                } else {
+                    alert('Error deleting judge.');
+                }
+            } catch (error) {
+                console.error('Error deleting judge:', error);
+                alert('Error deleting judge.');
+            }
+        }
+    </script>
+</body>
+</html>

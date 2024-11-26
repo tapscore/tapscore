@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #333;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #555;
+            font-size: 1.2rem;
+        }
+
+        th {
+            background-color: #444;
+        }
+
+        .judge-count-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            background-color: darkgrey;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .judge-count-button.selected {
+            background-color: #E6A30E;
+            color: black;
+        }
+
+        .update-button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 20px;
+        }
+
+        .success-message {
+            color: green;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back button that returns to admin.html -->
+    <div class="back-button" id="backButton">Back to Admin</div>
+
+    <h1>Category Management</h1>
+
+    <table id="categoryTable">
+        <thead>
+            <tr>
+                <th>Category Name</th>
+                <th>Judge Count</th>
+            </tr>
+        </thead>
+        <tbody id="categoryTableBody">
+            <!-- Category rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <div id="errorMessage" class="error-message" style="display:none;">Error updating judges. Please try again.</div>
+    <div id="successMessage" class="success-message" style="display:none;">Judges updated successfully!</div>
+
+    <!-- New "Update Judge Count" button -->
+    <button class="update-button" id="updateJudgeCountBtn">Update Judge Count</button>
+
+    <script>
+        let updatedCategories = {};  // Track changes to judge counts for each category
+
+        // Fetch and populate the categories
+        async function fetchCategories() {
+            try {
+                // Clear the table body before repopulating
+                const categoryTableBody = document.getElementById('categoryTableBody');
+                categoryTableBody.innerHTML = '';  // Clear the table body
+
+                const response = await fetch('http://localhost:5000/api/categories');
+                const categories = await response.json();
+
+                categories.forEach(category => {
+                    const row = document.createElement('tr');
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = category.name;
+                    row.appendChild(nameCell);
+
+                    const judgeCountCell = document.createElement('td');
+                    for (let i = 3; i <= 7; i++) {
+                        const button = document.createElement('button');
+                        button.textContent = i;
+                        button.className = 'judge-count-button';
+                        if (i == category.judge_count) {
+                            button.classList.add('selected');  // Highlight the current judge count button
+                        }
+                        button.onclick = () => selectJudgeCount(category.id, i, row);  // Update the selected judge count
+                        judgeCountCell.appendChild(button);
+                    }
+                    row.appendChild(judgeCountCell);
+
+                    categoryTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        }
+
+        // Function to select and highlight the judge count button
+        function selectJudgeCount(categoryId, judgeCount, row) {
+            const buttons = row.querySelectorAll('.judge-count-button');
+            buttons.forEach(button => button.classList.remove('selected'));  // Remove highlight from all buttons
+            const selectedButton = Array.from(buttons).find(button => button.textContent == judgeCount);
+            selectedButton.classList.add('selected');  // Highlight the selected button
+
+            // Store the updated judge count in a global object
+            updatedCategories[categoryId] = judgeCount;
+        }
+
+        // Function to submit all updates to the server when "Update Judge Count" button is clicked
+        async function updateJudgeCount() {
+            try {
+                for (const categoryId in updatedCategories) {
+                    const judgeCount = updatedCategories[categoryId];
+
+                    const response = await fetch('http://localhost:5000/api/update-category-judges', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ category_id: categoryId, judge_count: judgeCount })
+                    });
+
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.message);
+                    }
+                }
+
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('errorMessage').style.display = 'none';
+
+                // Refresh the page after update
+                fetchCategories();
+
+            } catch (error) {
+                console.error('Error updating judge count:', error);
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+        }
+
+        // Attach event listener to "Update Judge Count" button
+        document.getElementById('updateJudgeCountBtn').addEventListener('click', updateJudgeCount);
+
+        // Attach event listener to the Back button
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = 'admin.html';
+        });
+
+        // Fetch categories when the page loads
+        window.onload = fetchCategories;
+    </script>
+</body>
+</html>

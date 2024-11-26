@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Final Scoring</title>
+    <style>
+        /* Basic Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #333;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #555;
+            font-size: 1.2rem;
+        }
+
+        th {
+            background-color: #444;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 150px;
+            height: 8px;
+            background: grey;
+            outline: none;
+            border-radius: 5px;
+            margin: 10px;
+        }
+
+        /* Slider track */
+        .slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            background: grey;
+        }
+
+        /* Slider thumb */
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #E6A30E;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            cursor: pointer;
+            margin-top: -6px; /* Adjust to align the thumb with the track */
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #E6A30E;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            cursor: pointer;
+        }
+
+        .submit-button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .submit-button:hover {
+            background-color: #DC2663;
+            color: white;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .slider-value {
+            font-size: 1rem;
+            color: #E6A30E;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <div class="back-button" id="backButton">Back to Select Round</div>
+
+    <!-- Info Box -->
+    <div class="info-box" id="infoBox">
+        Judge: <span id="judgeName"></span> |
+        Group: <span id="categoryGroup"></span> |
+        Category: <span id="categoryName"></span>
+    </div>
+
+    <h1>Final Round</h1>
+
+    <!-- Competitor Table -->
+    <table id="competitorTable">
+        <thead>
+            <tr>
+                <th>Lot Number</th>
+                <th>T (1-10)</th>
+                <th>C (1-10)</th>
+                <th>I (1-10)</th>
+            </tr>
+        </thead>
+        <tbody id="competitorTableBody">
+            <!-- Rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Submit Button -->
+    <button class="submit-button" id="submitScores">Submit Scores</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+        const judgeName = urlParams.get('judge');
+        const categoryGroup = urlParams.get('group');
+        const categoryName = urlParams.get('category');
+
+        // Update Info Box
+        document.getElementById('judgeName').textContent = judgeName;
+        document.getElementById('categoryGroup').textContent = categoryGroup;
+        document.getElementById('categoryName').textContent = categoryName;
+
+        // Back Button Functionality
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = `select_round.html?category_id=${categoryId}&judge=${encodeURIComponent(judgeName)}&group=${encodeURIComponent(categoryGroup)}&category=${encodeURIComponent(categoryName)}`;
+        });
+
+        // Track Scores
+        let scores = {};
+
+        // Fetch Competitors from finalists table
+        async function fetchCompetitors() {
+            try {
+                const response = await fetch(`http://localhost:5000/api/finalists/${categoryId}`);
+                const competitors = await response.json();
+                const competitorTableBody = document.getElementById('competitorTableBody');
+
+                competitors.forEach(competitor => {
+                    const row = document.createElement('tr');
+
+                    const lotNumberCell = document.createElement('td');
+                    lotNumberCell.textContent = competitor.lot_number;
+                    row.appendChild(lotNumberCell);
+
+                    scores[competitor.lot_number] = { T: 5, C: 5, I: 5 };
+
+                    ['T', 'C', 'I'].forEach(criterion => {
+                        const cell = document.createElement('td');
+                        
+                        const sliderValue = document.createElement('div');
+                        sliderValue.className = 'slider-value';
+                        sliderValue.textContent = scores[competitor.lot_number][criterion];
+
+                        const slider = document.createElement('input');
+                        slider.type = 'range';
+                        slider.min = 1;
+                        slider.max = 10;
+                        slider.value = scores[competitor.lot_number][criterion];
+                        slider.className = 'slider';
+                        slider.oninput = () => {
+                            scores[competitor.lot_number][criterion] = parseInt(slider.value, 10);
+                            sliderValue.textContent = slider.value;
+                        };
+
+                        cell.appendChild(sliderValue);
+                        cell.appendChild(slider);
+                        row.appendChild(cell);
+                    });
+
+                    competitorTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching competitors:', error);
+            }
+        }
+
+        // Submit Scores
+        document.getElementById('submitScores').addEventListener('click', async function () {
+            try {
+                const response = await fetch(`http://localhost:5000/api/submit-final-scores`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ category_id: categoryId, judge_name: judgeName, scores }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Scores submitted successfully!');
+                } else {
+                    alert('Error submitting scores.');
+                }
+            } catch (error) {
+                console.error('Error submitting scores:', error);
+            }
+        });
+
+        // Fetch competitors when the page loads
+        window.onload = fetchCompetitors;
+    </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judge Selection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .form-container {
+            display: inline-block;
+            background-color: #222;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        label, select, input {
+            display: block;
+            margin: 15px auto;
+            font-size: 1.2rem;
+        }
+
+        select, input {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #DC2663;
+        }
+
+        .error {
+            color: red;
+            font-size: 1.1rem;
+            margin-top: 20px;
+        }
+
+        /* Admin link styling */
+        .admin-link {
+            margin-top: 50px;
+            display: block;
+            font-size: 1.2rem;
+            color: #E6A30E;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .admin-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select Judge and Enter PIN</h1>
+
+    <div class="form-container">
+        <form id="loginForm">
+            <label for="judgeName">Select Judge:</label>
+            <select id="judgeName" required>
+                <option value="" disabled selected>Select a Judge</option>
+            </select>
+
+            <label for="pin">Enter PIN:</label>
+            <input type="password" id="pin" maxlength="4" placeholder="4-digit PIN" required />
+
+            <button type="submit">Log In</button>
+        </form>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+    </div>
+
+    <!-- Admin page link -->
+    <a href="admin.html" class="admin-link">Admin Page</a>
+
+    <script>
+        // Function to dynamically populate the judge dropdown
+        async function fetchJudges() {
+            try {
+                const response = await fetch('http://localhost:5000/api/judges');
+                const judges = await response.json();
+
+                // Find the dropdown element
+                const judgeSelect = document.getElementById('judgeName');
+
+                // Populate the dropdown with judges
+                judges.forEach(judge => {
+                    const option = document.createElement('option');
+                    option.value = judge.name;
+                    option.textContent = judge.name;
+                    judgeSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching judges:', error);
+                document.getElementById('errorMessage').innerText = "Error fetching judges. Please try again.";
+                document.getElementById('errorMessage').style.display = "block";
+            }
+        }
+
+        // Call the function to fetch judges when the page loads
+        window.onload = fetchJudges;
+
+        document.getElementById('loginForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            
+            const judgeName = document.getElementById('judgeName').value;
+            const pin = document.getElementById('pin').value;
+
+            // Ensure a judge is selected and a PIN is entered
+            if (!judgeName || !pin) {
+                document.getElementById('errorMessage').innerText = "Please select a judge and enter a PIN.";
+                document.getElementById('errorMessage').style.display = "block";
+                return;
+            }
+
+            try {
+                // Send the judge's name and PIN to the server for authentication
+                const response = await fetch('http://localhost:5000/api/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: judgeName, pin: pin })
+                });
+
+                // Check for a 401 status (Unauthorized) which indicates wrong PIN
+                if (response.status === 401) {
+                    document.getElementById('errorMessage').innerText = "Invalid name or PIN. Please try again.";
+                    document.getElementById('errorMessage').style.display = "block";
+                    return;
+                }
+
+                // If the response is not OK but not specifically a 401, it's a server issue
+                if (!response.ok) {
+                    throw new Error("Server returned an error: " + response.statusText);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Authentication succeeded, proceed to category-group.html
+                    window.location.href = `category-group.html?judge=${encodeURIComponent(judgeName)}`;
+                }
+            } catch (error) {
+                // Handle any other errors (e.g., network or server issues)
+                console.error('Error during fetch:', error); // Log error to console
+                document.getElementById('errorMessage').innerText = "Error connecting to server. Please try again.";
+                document.getElementById('errorMessage').style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

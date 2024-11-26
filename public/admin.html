@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 40px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center; /* Center the panel */
+            margin-top: 50px;
+        }
+
+        .panel {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            width: 50%;
+            text-align: center;
+        }
+
+        .panel h2 {
+            color: #E6A30E;
+            margin-bottom: 20px;
+        }
+
+        .manage-button {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            color: black;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            width: 80%; /* Ensure buttons are wide */
+            display: block; /* Make sure buttons are block-level elements */
+            margin-left: auto; /* Center the buttons */
+            margin-right: auto;
+            transition: background-color 0.3s;
+        }
+
+        .manage-button:hover {
+            background-color: #DC2663;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <div class="back-button" onclick="window.location.href='index.html';">Back to Judge Selection</div>
+
+    <h1>Admin Panel</h1>
+
+    <div class="container">
+        <!-- Left Panel for Competition Changes -->
+        <div class="panel">
+            <button class="manage-button" onclick="window.location.href='judge_management.html'">Manage Judges</button>
+            <button class="manage-button" onclick="window.location.href='competitor_management.html'">Manage Competitors</button>
+            <button class="manage-button" onclick="window.location.href='category_management.html'">Manage Categories</button>
+            <button class="manage-button" onclick="window.location.href='category_advancement.html'">Category Advancement</button>
+            <button class="manage-button" onclick="window.location.href='category_progress.html'">Category Progress</button>
+			<button class="manage-button" onclick="window.location.href='results.html'">Results</button>
+			<button class="manage-button" onclick="window.location.href='admin_vote_log.html'">Voting Logs</button>
+        </div>
+    </div>
+</body>
+</html>

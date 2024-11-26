@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scoring - Heat Round</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .competitor-table {
+            margin-top: 30px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+            border-collapse: collapse;
+        }
+
+        .competitor-table th, .competitor-table td {
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .competitor-table th {
+            background-color: #222;
+        }
+
+        .competitor-table td {
+            background-color: #333;
+        }
+
+        .yes-no-buttons {
+            display: flex;
+            justify-content: center;
+        }
+
+        .yes-no-buttons button {
+            margin: 0 10px;
+            padding: 5px 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Styling for the selected button */
+        .yes-no-buttons button.selected {
+            background-color: #E6A30E;  /* Highlighted color */
+            color: black;
+        }
+
+        .submit-button {
+            margin-top: 30px;
+            padding: 10px 20px;
+            background-color: #E6A30E;
+            color: black;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back button that leads back to category.html -->
+    <div class="back-button" id="backButton">Back</div>
+
+    <!-- Info box that shows the judge's name, category group, and category -->
+    <div class="info-box" id="infoBox">
+        Judge: <span id="judgeName"></span> |
+        Group: <span id="categoryGroup"></span> |
+        Category: <span id="categoryName"></span>
+    </div>
+
+    <h1>Score the Competitors - Heat Round</h1>
+
+    <!-- Table to display competitors -->
+    <form id="heatScoringForm">
+        <table class="competitor-table" id="competitorTable">
+            <thead>
+                <tr>
+                    <th>Lot Number</th>
+                    <th>Name</th>
+                    <th>Advance?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Competitors will be dynamically inserted here -->
+            </tbody>
+        </table>
+
+        <!-- Submit button to send the scores -->
+        <button type="submit" class="submit-button">Submit Scores</button>
+    </form>
+
+    <script>
+        // Extract query parameters from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+        const judgeName = urlParams.get('judge');
+        const categoryGroup = urlParams.get('group');
+        const categoryName = urlParams.get('category');  // Get category from the URL
+
+        // Update the info box with judge, group, and category
+        document.getElementById('judgeName').textContent = judgeName;
+        document.getElementById('categoryGroup').textContent = categoryGroup;
+        document.getElementById('categoryName').textContent = categoryName;  // Display the category
+
+        // Back button functionality to go back to category.html
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = `category.html?group=${encodeURIComponent(categoryGroup)}&judge=${encodeURIComponent(judgeName)}`;
+        });
+
+        async function fetchCompetitors() {
+            try {
+                const response = await fetch(`http://localhost:5000/api/competitors/${categoryId}`);
+                const competitors = await response.json();
+
+                // Get the table body to insert competitors
+                const competitorTableBody = document.querySelector('#competitorTable tbody');
+
+                // Loop through the competitors and create table rows
+                competitors.forEach(competitor => {
+                    const row = document.createElement('tr');
+
+                    // Create table cells for lot number, name, and Yes/No options
+                    const lotNumberCell = document.createElement('td');
+                    lotNumberCell.textContent = competitor.lot_number;
+                    row.appendChild(lotNumberCell);
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = competitor.name;
+                    row.appendChild(nameCell);
+
+                    // Yes/No buttons
+                    const yesNoCell = document.createElement('td');
+                    const yesNoDiv = document.createElement('div');
+                    yesNoDiv.className = 'yes-no-buttons';
+
+                    // Yes button
+                    const yesButton = document.createElement('button');
+                    yesButton.type = 'button';
+                    yesButton.textContent = 'Yes';
+
+                    // No button
+                    const noButton = document.createElement('button');
+                    noButton.type = 'button';
+                    noButton.textContent = 'No';
+
+                    // Event listeners for Yes/No buttons
+                    yesButton.addEventListener('click', () => {
+                        yesButton.classList.add('selected');
+                        noButton.classList.remove('selected');
+                        yesButton.setAttribute('data-selected', 'true');
+                        noButton.setAttribute('data-selected', 'false');
+                    });
+
+                    noButton.addEventListener('click', () => {
+                        noButton.classList.add('selected');
+                        yesButton.classList.remove('selected');
+                        noButton.setAttribute('data-selected', 'true');
+                        yesButton.setAttribute('data-selected', 'false');
+                    });
+
+                    yesNoDiv.appendChild(yesButton);
+                    yesNoDiv.appendChild(noButton);
+                    yesNoCell.appendChild(yesNoDiv);
+                    row.appendChild(yesNoCell);
+
+                    // Append the row to the table body
+                    competitorTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching competitors:', error);
+            }
+        }
+
+        // Fetch competitors when the page loads
+        window.onload = fetchCompetitors;
+
+        // Form submission handler with debugging and button feedback
+        document.getElementById('heatScoringForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            // Collect the Yes/No results for each competitor
+            const competitorRows = document.querySelectorAll('#competitorTable tbody tr');
+            const results = [];
+
+            competitorRows.forEach(row => {
+                const lotNumber = row.querySelector('td:first-child').textContent;
+                const yesSelected = row.querySelector('button.selected').textContent === 'Yes';
+
+                results.push({
+                    lot_number: lotNumber,
+                    advance: yesSelected
+                });
+            });
+
+            console.log('Submitting scores:', { judge: judgeName, category_id: categoryId, results });  // Log data being sent
+
+            // Send the results to the server
+            fetch('http://localhost:5000/api/submit-scores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ judge: judgeName, category_id: categoryId, results }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Scores submitted:', data);
+                // Show feedback to the user
+                document.querySelector('.submit-button').textContent = 'Scores Submitted!';
+                document.querySelector('.submit-button').disabled = true;  // Disable button after submission
+            })
+            .catch(error => {
+                console.error('Error submitting scores:', error);
+            });
+        });
+    </script>
+</body>
+</html>

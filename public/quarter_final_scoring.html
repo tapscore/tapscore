@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quarter-Final Scoring</title>
+    <style>
+        /* CSS Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #333;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #555;
+            font-size: 1.2rem;
+        }
+
+        th {
+            background-color: #444;
+        }
+
+        .yes-no-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            background-color: darkgrey;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .yes-no-button.yes.selected {
+            background-color: #28a745; /* Green */
+        }
+
+        .yes-no-button.no.selected {
+            background-color: #dc3545; /* Red */
+        }
+
+        .submit-button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .submit-button:hover {
+            background-color: #DC2663;
+            color: white;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+
+        .message.error {
+            color: #dc3545; /* Red */
+        }
+
+        .message.success {
+            color: #28a745; /* Green */
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <div class="back-button" id="backButton">Back to Select Round</div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+        Judge: <span id="judgeName"></span> |
+        Group: <span id="categoryGroup"></span> |
+        Category: <span id="categoryName"></span>
+    </div>
+
+    <h1>Quarter-Final Round</h1>
+
+    <!-- Competitor Table -->
+    <table id="competitorTable">
+        <thead>
+            <tr>
+                <th>Lot Number</th>
+                <th>Selection</th>
+            </tr>
+        </thead>
+        <tbody id="competitorTableBody">
+            <!-- Competitors will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Submit Button -->
+    <button class="submit-button" id="submitVotes">Submit Votes</button>
+
+    <!-- Message Display -->
+    <div id="message" class="message"></div>
+
+    <script>
+        // Retrieve URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+        const judgeName = urlParams.get('judge');
+        const categoryGroup = urlParams.get('group');
+        const categoryName = urlParams.get('category');
+
+        // Update Info Box
+        document.getElementById('judgeName').textContent = judgeName;
+        document.getElementById('categoryGroup').textContent = categoryGroup;
+        document.getElementById('categoryName').textContent = categoryName;
+
+        // Back Button Functionality
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = `select_round.html?category_id=${categoryId}&judge=${encodeURIComponent(judgeName)}&group=${encodeURIComponent(categoryGroup)}&category=${encodeURIComponent(categoryName)}`;
+        });
+
+        // Fetch Competitors from quarter_finalists table
+        async function fetchCompetitors() {
+            try {
+                const response = await fetch(`http://localhost:5000/api/quarter-finalists/${categoryId}`);
+                const competitors = await response.json();
+                const competitorTableBody = document.getElementById('competitorTableBody');
+
+                competitorTableBody.innerHTML = ''; // Clear existing rows
+
+                competitors.forEach(competitor => {
+                    const row = document.createElement('tr');
+
+                    const lotNumberCell = document.createElement('td');
+                    lotNumberCell.textContent = competitor.lot_number;
+                    row.appendChild(lotNumberCell);
+
+                    const selectionCell = document.createElement('td');
+                    const yesButton = document.createElement('button');
+                    yesButton.textContent = 'Yes';
+                    yesButton.className = 'yes-no-button yes';
+                    yesButton.dataset.vote = 'yes';
+                    yesButton.onclick = () => toggleVote(yesButton, competitor.lot_number);
+
+                    const noButton = document.createElement('button');
+                    noButton.textContent = 'No';
+                    noButton.className = 'yes-no-button no';
+                    noButton.dataset.vote = 'no';
+                    noButton.onclick = () => toggleVote(noButton, competitor.lot_number);
+
+                    selectionCell.appendChild(yesButton);
+                    selectionCell.appendChild(noButton);
+                    row.appendChild(selectionCell);
+
+                    competitorTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching competitors:', error);
+                displayMessage('Error fetching competitors. Please try again later.', 'error');
+            }
+        }
+
+        // Track Votes
+        let votes = {};
+
+        // Toggle Vote Buttons
+        function toggleVote(button, lotNumber) {
+            const buttons = button.parentElement.querySelectorAll('.yes-no-button');
+            buttons.forEach(btn => btn.classList.remove('selected'));
+            button.classList.add('selected');
+            votes[lotNumber] = button.dataset.vote;
+        }
+
+        // Submit Votes
+        document.getElementById('submitVotes').addEventListener('click', async function () {
+            try {
+                // Ensure that at least one vote has been made
+                if (Object.keys(votes).length === 0) {
+                    displayMessage('Please select votes for at least one competitor.', 'error');
+                    return;
+                }
+
+                const response = await fetch(`http://localhost:5000/api/submit-quarter-final-votes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ category_id: categoryId, judge_name: judgeName, votes }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    displayMessage('Votes submitted successfully!', 'success');
+                    votes = {};
+                    fetchCompetitors(); // Refresh the competitor list
+                } else {
+                    displayMessage(`Error submitting votes: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error submitting votes:', error);
+                displayMessage('An error occurred while submitting votes. Please try again.', 'error');
+            }
+        });
+
+        // Function to display messages
+        function displayMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+
+            // Hide the message after 5 seconds
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'message';
+            }, 5000);
+        }
+
+        // Fetch competitors when the page loads
+        window.onload = fetchCompetitors;
+    </script>
+</body>
+</html>

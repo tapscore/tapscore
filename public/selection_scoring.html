@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selection Scoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #333;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #555;
+            font-size: 1.2rem;
+        }
+
+        th {
+            background-color: #444;
+        }
+
+        /* Yes/No button styles */
+        .yes-no-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            background-color: darkgrey;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .yes-no-button.yes.selected {
+            background-color: #28a745;
+        }
+
+        .yes-no-button.no.selected {
+            background-color: #dc3545;
+        }
+
+        .submit-button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-button" id="backButton">Back to Select Round</div>
+
+    <!-- Info box showing Judge, Category Group, and Selected Category -->
+    <div class="info-box" id="infoBox">
+        Judge: <span id="judgeName"></span> |
+        Group: <span id="categoryGroup"></span> |
+        Category: <span id="categoryName"></span>
+    </div>
+
+    <h1>Selection Round</h1>
+
+    <table id="competitorTable">
+        <thead>
+            <tr>
+                <th>Lot Number</th>
+                <th>Selection</th>
+            </tr>
+        </thead>
+        <tbody id="competitorTableBody">
+            <!-- Competitors will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <button class="submit-button" id="submitVotes">Submit Votes</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoryId = urlParams.get('category_id');
+        const judgeName = urlParams.get('judge');
+        const categoryGroup = urlParams.get('group');
+        const categoryName = urlParams.get('category');
+
+        // Update the info box with judge, category group, and category name
+        document.getElementById('judgeName').textContent = judgeName;
+        document.getElementById('categoryGroup').textContent = categoryGroup;
+        document.getElementById('categoryName').textContent = categoryName;
+
+        // Back button functionality to go back to select_round.html, preserving judge, group, and category info
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = `select_round.html?category_id=${categoryId}&judge=${encodeURIComponent(judgeName)}&group=${encodeURIComponent(categoryGroup)}&category=${encodeURIComponent(categoryName)}`;
+        });
+
+        // Fetch competitors for the selected category
+        async function fetchCompetitors() {
+            try {
+                const response = await fetch(`http://localhost:5000/api/competitors/${categoryId}`);
+                const competitors = await response.json();
+                const competitorTableBody = document.getElementById('competitorTableBody');
+
+                competitors.forEach(competitor => {
+                    const row = document.createElement('tr');
+
+                    const lotNumberCell = document.createElement('td');
+                    lotNumberCell.textContent = competitor.lot_number;
+                    row.appendChild(lotNumberCell);
+
+                    const selectionCell = document.createElement('td');
+                    const yesButton = document.createElement('button');
+                    yesButton.textContent = 'Yes';
+                    yesButton.className = 'yes-no-button yes';
+                    yesButton.dataset.vote = 'yes';
+                    yesButton.onclick = () => toggleVote(yesButton, competitor.lot_number);
+
+                    const noButton = document.createElement('button');
+                    noButton.textContent = 'No';
+                    noButton.className = 'yes-no-button no';
+                    noButton.dataset.vote = 'no';
+                    noButton.onclick = () => toggleVote(noButton, competitor.lot_number);
+
+                    selectionCell.appendChild(yesButton);
+                    selectionCell.appendChild(noButton);
+                    row.appendChild(selectionCell);
+
+                    competitorTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching competitors:', error);
+            }
+        }
+
+        // Track votes
+        let votes = {};
+
+        // Toggle vote buttons
+        function toggleVote(button, lotNumber) {
+            const buttons = button.parentElement.querySelectorAll('.yes-no-button');
+            buttons.forEach(btn => btn.classList.remove('selected'));  // Remove highlight from both buttons
+
+            button.classList.add('selected');  // Highlight the clicked button
+
+            votes[lotNumber] = button.dataset.vote;  // Store the vote
+        }
+
+        // Submit votes
+        document.getElementById('submitVotes').addEventListener('click', async function () {
+            try {
+                const response = await fetch(`http://localhost:5000/api/submit-selection-votes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ category_id: categoryId, judge_name: judgeName, votes }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Votes submitted successfully!');
+                } else {
+                    alert('Error submitting votes.');
+                }
+            } catch (error) {
+                console.error('Error submitting votes:', error);
+            }
+        });
+
+        // Fetch competitors when the page loads
+        window.onload = fetchCompetitors;
+    </script>
+</body>
+</html>

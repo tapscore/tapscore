@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Category Advancement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        table, th, td {
+            border: 1px solid #E6A30E;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #333;
+        }
+
+        td {
+            background-color: #222;
+        }
+
+        th.round, td.round {
+            width: 150px;
+        }
+
+        .advance-button, .calculate-button {
+            padding: 5px 15px;
+            background-color: #E6A30E;
+            border: none;
+            color: black;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .advance-button:disabled, .calculate-button:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+
+        .advance-button:hover:not(:disabled), .calculate-button:hover:not(:disabled) {
+            background-color: #DC2663;
+            color: white;
+        }
+
+        .update-button {
+            margin-top: 30px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #E6A30E;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .update-button:hover {
+            background-color: #DC2663;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+
+        .message.success {
+            color: #28a745;
+        }
+
+        .message.error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-button" onclick="window.location.href='admin.html'">Back to Admin Panel</div>
+
+    <h1>Category Advancement</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th class="round">Selection</th>
+                <th class="round">Semi-Final</th>
+                <th class="round">Final</th>
+                <th class="round">SF Advance?</th>
+                <th class="round">Final Advance?</th>
+                <th class="round">Calculate Results</th>
+            </tr>
+        </thead>
+        <tbody id="categoryRoundsTableBody">
+            <!-- Rows will be dynamically added here -->
+        </tbody>
+    </table>
+
+    <button class="update-button" onclick="updateCategoryRounds()">Update Rounds</button>
+
+    <div id="message" class="message"></div>
+
+    <script>
+        let categoryRoundsData = [];
+
+        async function fetchCategoryRounds() {
+            try {
+                const response = await fetch('http://localhost:5000/api/rounds');
+                categoryRoundsData = await response.json();
+                const categoryRoundsTableBody = document.getElementById('categoryRoundsTableBody');
+                categoryRoundsTableBody.innerHTML = '';
+
+                categoryRoundsData.forEach(categoryRound => {
+                    const row = document.createElement('tr');
+
+                    const categoryCell = document.createElement('td');
+                    categoryCell.textContent = categoryRound.category_name;
+
+                    const selectionCell = createCheckbox(categoryRound.id, 'selection', categoryRound.selection);
+                    const semiFinalCell = createCheckbox(categoryRound.id, 'semi_final', categoryRound.semi_final);
+                    const finalCell = createCheckbox(categoryRound.id, 'final', categoryRound.final);
+
+                    const sfAdvanceCell = createAdvanceButton(categoryRound.id, 'SF');
+                    const finalAdvanceCell = createAdvanceButton(categoryRound.id, 'Final');
+                    const calculateResultsCell = createCalculateButton(categoryRound.id);
+
+                    row.appendChild(categoryCell);
+                    row.appendChild(selectionCell);
+                    row.appendChild(semiFinalCell);
+                    row.appendChild(finalCell);
+                    row.appendChild(sfAdvanceCell);
+                    row.appendChild(finalAdvanceCell);
+                    row.appendChild(calculateResultsCell);
+
+                    categoryRoundsTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching category rounds:', error);
+            }
+        }
+
+        function createCheckbox(categoryRoundId, roundType, isActive) {
+            const cell = document.createElement('td');
+            cell.classList.add('round');
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = isActive == 1;
+            input.onchange = () => updateRoundStatus(categoryRoundId, roundType, input.checked);
+
+            cell.appendChild(input);
+            return cell;
+        }
+
+        function createAdvanceButton(categoryRoundId, roundType) {
+            const cell = document.createElement('td');
+            cell.classList.add('round');
+            const button = document.createElement('button');
+            button.className = 'advance-button';
+            button.textContent = 'Advance';
+            button.onclick = async () => {
+                if (confirm(`Are you sure you want to advance competitors for category ${categoryRoundId} to ${roundType === 'SF' ? 'Semi-Final' : 'Final'}?`)) {
+                    button.disabled = true;
+                    await advanceToNextRound(categoryRoundId, roundType);
+                }
+            };
+            cell.appendChild(button);
+            return cell;
+        }
+
+        function createCalculateButton(categoryId) {
+            const cell = document.createElement('td');
+            cell.classList.add('round');
+            const button = document.createElement('button');
+            button.className = 'calculate-button';
+            button.textContent = 'Calculate';
+            button.onclick = async () => {
+                if (confirm(`Are you sure you want to calculate results for category ${categoryId}?`)) {
+                    button.disabled = true;
+                    await calculateResults(categoryId);
+                }
+            };
+            cell.appendChild(button);
+            return cell;
+        }
+
+        function updateRoundStatus(categoryRoundId, roundType, isActive) {
+            const categoryRound = categoryRoundsData.find(c => c.id === categoryRoundId);
+            if (categoryRound) {
+                categoryRound[roundType] = isActive ? 1 : 0;
+            }
+        }
+
+        async function advanceToNextRound(categoryId, roundType) {
+            let apiUrl = '';
+            let successMessage = '';
+            let errorMessage = '';
+
+            if (roundType === 'SF') {
+                apiUrl = 'http://localhost:5000/api/advance-to-semi-final';
+                successMessage = 'Advanced to Semi-Final.';
+                errorMessage = 'Error advancing to Semi-Final.';
+            } else if (roundType === 'Final') {
+                apiUrl = 'http://localhost:5000/api/advance-to-final';
+                successMessage = 'Advanced to Final.';
+                errorMessage = 'Error advancing to Final.';
+            } else {
+                alert('Invalid round type.');
+                return;
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ category_id: categoryId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayMessage(successMessage, 'success');
+                } else {
+                    displayMessage(`Error: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error advancing competitors:', error);
+                displayMessage(errorMessage, 'error');
+            }
+        }
+
+        async function calculateResults(categoryId) {
+            try {
+                const response = await fetch('http://localhost:5000/api/calculate-final-ranks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ category_id: categoryId }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayMessage('Final rankings calculated successfully!', 'success');
+                } else {
+                    displayMessage(`Error: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error calculating rankings:', error);
+                displayMessage('Error calculating rankings.', 'error');
+            }
+        }
+
+        async function updateCategoryRounds() {
+            try {
+                const response = await fetch('http://localhost:5000/api/update-category-rounds', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(categoryRoundsData)
+                });
+
+                if (response.ok) {
+                    displayMessage('Category rounds updated successfully!', 'success');
+                } else {
+                    displayMessage('Error updating category rounds.', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating category rounds:', error);
+                displayMessage('Error updating category rounds.', 'error');
+            }
+        }
+
+        function displayMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'message';
+            }, 5000);
+        }
+
+        window.onload = fetchCategoryRounds;
+    </script>
+</body>
+</html>

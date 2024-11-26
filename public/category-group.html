@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Category Group</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #DC2663, #E6A30E);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #222;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .group-list {
+            margin-top: 30px;
+            list-style: none;
+            padding: 0;
+        }
+
+        .group-item {
+            margin: 20px auto;
+            padding: 20px 40px;
+            background: linear-gradient(90deg, #DC2663, #E6A30E); /* Gradient color */
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: white;
+            text-transform: uppercase;
+            font-weight: bold;
+            width: 60%;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .group-item:hover {
+            background-color: #444;
+            transform: scale(1.05);
+        }
+
+        /* Center the buttons */
+        .group-list {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back button that leads to index.html -->
+    <div class="back-button" onclick="window.location.href='index.html';">Back</div>
+
+    <!-- Info box that shows the judge's name -->
+    <div class="info-box" id="infoBox">Judge: <span id="judgeName"></span></div>
+
+    <h1>Select a Category Group</h1>
+
+    <ul class="group-list" id="groupList"></ul>
+
+    <script>
+        // Updated category groups array
+        const categoryGroups = [
+            'BACHATA',
+            'BALLET',
+            'BALLET IMPROVISATION',
+            'CONTEMPORARY',
+            'HIP HOP',
+            'JAZZ',
+            'IMPROVISATION',
+            'LATINO DANCE',
+            'POP DANCE',
+            'SALSA',
+            'SHOW DANCE',
+            'SHOW OF STREET DANCE',
+            'THE BEST SOLO',
+            'THE BEST DUO',
+            'THE BEST TEAM'
+        ];
+
+        const groupList = document.getElementById('groupList');
+
+        // Get judge name from the URL (passed in from index.html)
+        const urlParams = new URLSearchParams(window.location.search);
+        const judgeName = urlParams.get('judge');
+
+        // Update the info box with the judge's name
+        document.getElementById('judgeName').textContent = judgeName;
+
+        // Populate category groups as buttons
+        categoryGroups.forEach(group => {
+            const li = document.createElement('li');
+            li.className = 'group-item';
+            li.textContent = group;
+
+            // When clicked, navigate to category.html with the correct group
+            li.addEventListener('click', () => {
+                window.location.href = `category.html?group=${encodeURIComponent(group)}&judge=${encodeURIComponent(judgeName)}`;
+            });
+
+            groupList.appendChild(li);
+        });
+    </script>
+</body>
+</html>
